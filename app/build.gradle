@@ -1,0 +1,79 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+}
+
+android {
+    namespace 'com.example.gifapp'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.example.gifapp"
+        minSdk 26
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+    namespace 'com.example.gifapp'
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+
+    // Core
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
+
+    // UI
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.8.0-rc01'
+    implementation "androidx.cardview:cardview:1.0.0"
+    implementation "androidx.recyclerview:recyclerview:1.2.1"
+    implementation "com.squareup.picasso:picasso:2.71828"
+
+    // Room
+    implementation "androidx.room:room-ktx:2.4.3"
+    implementation 'androidx.room:room-common:2.4.3'
+    kapt "androidx.room:room-compiler:2.4.3"
+
+    // Dagger - Hilt
+    implementation "com.google.dagger:hilt-android:2.41"
+    kapt "com.google.dagger:hilt-android-compiler:2.41"
+    kapt "androidx.hilt:hilt-compiler:1.0.0"
+
+    // Retrofit 2
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    // Kotlin ext
+    implementation 'androidx.fragment:fragment-ktx:1.5.5'
+
+    // Gson
+    implementation 'com.google.code.gson:gson:2.9.1'
+}
