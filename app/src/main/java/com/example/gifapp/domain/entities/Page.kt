@@ -1,6 +1,6 @@
 package com.example.gifapp.domain.entities
 
-data class GifPicturesPage(
+data class Page(
     val pageNumber: Int,
-    val gifPictures: List<GifPicture>
+    val gifPictures: List<GifPicture>,
 )

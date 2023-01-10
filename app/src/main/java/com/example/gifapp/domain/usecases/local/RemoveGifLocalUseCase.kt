@@ -1,4 +1,4 @@
-package com.example.gifapp.domain.usecases
+package com.example.gifapp.domain.usecases.local
 
 import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.reposities.LocalGifRepository
