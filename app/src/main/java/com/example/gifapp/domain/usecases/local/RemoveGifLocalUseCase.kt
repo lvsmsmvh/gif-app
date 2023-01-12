@@ -10,4 +10,8 @@ class RemoveGifLocalUseCase @Inject constructor(
     suspend operator fun invoke(gifs: List<GifPicture>): Result<Boolean> {
         return localGifRepository.remove(gifs)
     }
+
+    suspend operator fun invoke(gif: GifPicture): Result<Boolean> {
+        return localGifRepository.remove(gif)
+    }
 }

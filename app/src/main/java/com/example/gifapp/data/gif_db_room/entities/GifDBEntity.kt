@@ -8,5 +8,5 @@ data class GifDBEntity(
     @PrimaryKey val id: String,
     val uri: String,
     val title: String,
-    val description: String,
+    val localUrl: String,
 )

@@ -18,5 +18,6 @@ data class GifObject(
     val import_datetime: String,
     val trending_datetime: String,
     val title: String,
-    val alt_text: String,
+    val alt_text: String?,
+    val images: GifImages,
 )

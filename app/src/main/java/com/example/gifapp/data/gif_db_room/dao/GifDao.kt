@@ -11,8 +11,17 @@ interface GifDao {
     @Query("SELECT * FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs) LIMIT :from, :to")
     fun getGifEntities(from: Int, to: Int): List<GifDBEntity>
 
+    @Query("SELECT * FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs)")
+    fun getGifEntities(): List<GifDBEntity>
+
+    @Query("SELECT * FROM gifs WHERE id LIKE :id")
+    fun getById(id: String): GifDBEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(gifDBEntity: GifDBEntity)
+
+    @Query("DELETE FROM gifs WHERE id LIKE :id")
+    fun delete(id: String)
 
     @Delete
     fun delete(gifDBEntity: GifDBEntity)

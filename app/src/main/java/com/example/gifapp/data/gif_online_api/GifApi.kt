@@ -1,7 +1,6 @@
 package com.example.gifapp.data.gif_online_api
 
 import com.example.gifapp.data.gif_online_api.entities.GifResponse
-import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -11,7 +10,7 @@ interface GifApi {
         @Query("api_key") api_key: String,
         @Query("limit") limit: Int,
         @Query("offset") offset: Int,
-    ): Call<GifResponse>
+    ): GifResponse
 
     @GET("v1/gifs/search")
     suspend fun searchGifs(
@@ -19,5 +18,5 @@ interface GifApi {
         @Query("q") search_string: String,
         @Query("limit") limit: Int,
         @Query("offset") offset: Int,
-    ): Call<GifResponse>
+    ): GifResponse
 }

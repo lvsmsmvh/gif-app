@@ -1,7 +1,6 @@
 package com.example.gifapp.data.mappers
 
 import com.example.gifapp.data.gif_db_room.entities.GifDBEntity
-import com.example.gifapp.data.gif_db_room.entities.RemovedGifDBEntity
 import com.example.gifapp.data.gif_online_api.entities.GifObject
 import com.example.gifapp.domain.entities.GifPicture
 
@@ -9,19 +8,18 @@ fun List<GifObject>.toGifPictures(): List<GifPicture> {
     return map {
         GifPicture(
             id = it.id,
-            url = it.url,
+            url = it.images.fixed_width.url,
             title = it.title,
-            description = it.alt_text,
         )
     }
 }
 
-fun GifPicture.toGifDBEntity(): GifDBEntity {
+fun GifPicture.toGifDBEntity(localUrl: String): GifDBEntity {
     return GifDBEntity(
         id = id,
         uri = url,
         title = title,
-        description = description,
+        localUrl = localUrl
     )
 }
 
@@ -30,7 +28,6 @@ fun GifPicture.changeUrl(newUrl: String): GifPicture {
         id = id,
         url = newUrl,
         title = title,
-        description = description,
     )
 }
 
@@ -39,6 +36,5 @@ fun GifDBEntity.toGifPicture(): GifPicture {
         id = id,
         url = uri,
         title = title,
-        description = description,
     )
 }

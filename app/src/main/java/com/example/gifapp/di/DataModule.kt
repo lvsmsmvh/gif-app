@@ -1,13 +1,17 @@
 package com.example.gifapp.di
 
 import android.app.Application
+import android.content.Context
 import androidx.room.Room
 import com.example.gifapp.data.gif_db_room.DATABASE_NAME
 import com.example.gifapp.data.gif_db_room.RoomDB
+import com.example.gifapp.data.gif_download.GifDownloadApi
 import com.example.gifapp.data.gif_online_api.GifApi
-import com.example.gifapp.data.repository.LocalRoomToMediaStoreImpl
+import com.example.gifapp.data.repository.GifSourceImpl
+import com.example.gifapp.data.repository.LocalRoomImpl
 import com.example.gifapp.data.repository.OnlineGiphyImpl
 import com.example.gifapp.data.repository.RemovedGifsRoomImpl
+import com.example.gifapp.domain.reposities.GifSourceRepository
 import com.example.gifapp.domain.reposities.LocalGifRepository
 import com.example.gifapp.domain.reposities.OnlineGifRepository
 import com.example.gifapp.domain.reposities.RemovedGifsRepository
@@ -27,6 +31,9 @@ class DataModule {
         private const val GIF_API_URL = "https://api.giphy.com/"
     }
 
+    @Provides
+    fun provideContext(application: Application): Context = application.applicationContext
+
     private class RetrofitBuilder<API_TYPE>(
         private val apiClass: Class<API_TYPE>,
         private val baseUrl: String
@@ -43,6 +50,13 @@ class DataModule {
     @Singleton
     fun provideGifApi(): GifApi = RetrofitBuilder(
         GifApi::class.java,
+        GIF_API_URL
+    ).build()
+
+    @Provides
+    @Singleton
+    fun provideGifDownloadApi(): GifDownloadApi = RetrofitBuilder(
+        GifDownloadApi::class.java,
         GIF_API_URL
     ).build()
 
@@ -68,12 +82,18 @@ class DataModule {
     @Provides
     @Singleton
     fun provideLocalGifRepository(
-        localGifRepository: LocalRoomToMediaStoreImpl
+        localGifRepository: LocalRoomImpl
     ): LocalGifRepository = localGifRepository
 
     @Provides
     @Singleton
     fun provideRemovedGifsRepository(
-        removedGifsImpl: RemovedGifsRoomImpl
-    ): RemovedGifsRepository = removedGifsImpl
+        removedGifsRepository: RemovedGifsRoomImpl
+    ): RemovedGifsRepository = removedGifsRepository
+
+    @Provides
+    @Singleton
+    fun provideGifSourceRepository(
+        gifSourceRepository: GifSourceImpl
+    ): GifSourceRepository = gifSourceRepository
 }

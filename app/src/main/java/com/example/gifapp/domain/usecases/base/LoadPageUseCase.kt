@@ -1,7 +1,8 @@
 package com.example.gifapp.domain.usecases.base
 
-import com.example.gifapp.domain.reposities.BaseGifRepository
+import com.example.gifapp.domain.entities.Page
 
-open class LoadPageUseCase(private val gifRepository: BaseGifRepository) {
-    suspend operator fun invoke(pageNumber: Int) = gifRepository.loadPage(pageNumber)
+
+interface LoadPageUseCase {
+    suspend operator fun invoke(pageNumber: Int, query: String = ""): Result<Page>
 }

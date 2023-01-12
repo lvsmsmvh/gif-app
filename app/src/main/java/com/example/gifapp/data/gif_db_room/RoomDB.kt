@@ -8,7 +8,7 @@ import com.example.gifapp.data.gif_db_room.entities.GifDBEntity
 import com.example.gifapp.data.gif_db_room.entities.RemovedGifDBEntity
 
 const val DATABASE_NAME = "room_local_db"
-private const val CURRENT_DB_VERSION = 1
+private const val CURRENT_DB_VERSION = 3
 
 @Database(
     entities = [
