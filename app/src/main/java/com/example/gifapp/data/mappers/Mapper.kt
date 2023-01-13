@@ -8,7 +8,7 @@ fun List<GifObject>.toGifPictures(): List<GifPicture> {
     return map {
         GifPicture(
             id = it.id,
-            url = it.images.fixed_width.url,
+            url = it.images.fixed_width_small.url ?: it.images.fixed_width.url,
             title = it.title,
         )
     }
