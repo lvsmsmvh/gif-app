@@ -1,5 +1,6 @@
 package com.example.gifapp.utils
 
+import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
@@ -9,23 +10,72 @@ import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
-import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.example.gifapp.R
-import kotlinx.coroutines.*
-import java.nio.ByteBuffer
+import com.example.gifapp.domain.entities.GifPicture
+import java.io.File
 
 object MediaSaverUtil {
+
+    private fun getFileNameFor(gifPicture: GifPicture): String {
+        return "Image_${gifPicture.id}"
+    }
+    fun getUriFromDisplayName(context: Context, displayName: String): Uri? {
+        val projection: Array<String> = arrayOf(MediaStore.Files.FileColumns._ID)
+
+        val cursor = context.contentResolver.query(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
+            MediaStore.Files.FileColumns.DISPLAY_NAME + " LIKE ?", arrayOf(displayName), null
+        )!!
+        cursor.moveToFirst()
+        return if (cursor.count > 0) {
+            val columnIndex = cursor.getColumnIndex(projection[0])
+            val fileId = cursor.getLong(columnIndex)
+            cursor.close()
+            Uri.parse(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString() + "/" + fileId)
+        } else {
+            null
+        }
+    }
+    fun removeGif(context: Context, gifPicture: GifPicture) {
+        logDebug("Deleting ${gifPicture.id} ...")
+
+        val displayName = getFileNameFor(gifPicture)
+        val uri = getUriFromDisplayName(context, displayName)
+        if (uri != null) {
+            val resolver: ContentResolver = context.contentResolver
+            val selectionArgsPdf = arrayOf(displayName)
+            try {
+                resolver.delete(
+                    uri,
+                    MediaStore.Files.FileColumns.DISPLAY_NAME + "=?",
+                    selectionArgsPdf
+                )
+                logDebug("Deleted successfully ${gifPicture.id}")
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                // show some alert message
+                logDebug("Deleting failed ${gifPicture.id}")
+                logDebug(ex.message.toString())
+            }
+        }
+
+
+    }
+
+    fun removeGif(localUrl: String) {
+        logDebug("File deleting $localUrl")
+        val file = File(localUrl)
+        file.delete()
+    }
+
 
     /**
      * Returns a path for the new saved file.
      **/
-    fun saveGif(
-        context: Context,
-        gifDrawable: GifDrawable,
-        filename: String,
-    ): String {
+
+    fun saveGif(context: Context, bytes: ByteArray, gifPicture: GifPicture): String {
         val contentValues = ContentValues()
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, getFileNameFor(gifPicture))
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/gif")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val appName = context.getString(R.string.app_name)
@@ -38,45 +88,11 @@ object MediaSaverUtil {
         )!!
 
         val path = getPath(context, gifContentUri)!!
-//            logDebug("Gif will be saved into $path")
-
-        val byteBuffer = gifDrawable.buffer
-        val outputStream = contentResolver.openOutputStream(gifContentUri, "w")!!
-        val bytes = ByteArray(byteBuffer.capacity())
-        (byteBuffer.duplicate().clear() as ByteBuffer).get(bytes)
-
-        outputStream.write(bytes, 0, bytes.size)
-        outputStream.close()
-
-        return path
-    }
-
-    fun saveGif(
-        context: Context,
-        bytes: ByteArray,
-        filename: String,
-    ): String {
-        val contentValues = ContentValues()
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/gif")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val appName = context.getString(R.string.app_name)
-            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/$appName")
-        }
-
-        val contentResolver = context.contentResolver
-        val gifContentUri: Uri = contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
-        )!!
-
-        val path = getPath(context, gifContentUri)!!
-
         val outputStream = contentResolver.openOutputStream(gifContentUri, "w")!!
 
         outputStream.write(bytes, 0, bytes.size)
         outputStream.close()
-
-
+        logDebug("File saving $path")
         return path
     }
 

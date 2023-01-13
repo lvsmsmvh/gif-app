@@ -14,12 +14,6 @@ class RemovedGifsRoomImpl @Inject constructor(
         return Result.success(true)
     }
 
-    override fun markRemoved(gifIds: List<String>): Result<Boolean> {
-        val entities = gifIds.map { RemovedGifDBEntity(it) }
-        removedGifsDao.insert(entities)
-        return Result.success(true)
-    }
-
     override fun getAllRemovedGifIds(): Result<List<String>> {
         val entities = removedGifsDao.getAll()
         val ids = entities.map { it.id }

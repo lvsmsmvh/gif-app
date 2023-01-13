@@ -1,5 +1,6 @@
 package com.example.gifapp.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -64,7 +65,7 @@ class PageViewModel @Inject constructor(
         return@transform PaginationModel(hideButtons = it.isLoading())
     }
 
-    fun removeGif(gifPicture: GifPicture) {
+    fun removeGif(context: Context, gifPicture: GifPicture) {
         // delete from loaded page
         loadedPageOrNull()?.let {
             val pictures = it.gifPictures
@@ -77,7 +78,7 @@ class PageViewModel @Inject constructor(
 
         // delete from storage
         makeSimpleRequest {
-            removeGifLocalUseCase(gifPicture)
+            removeGifLocalUseCase(context, gifPicture)
         }
     }
 

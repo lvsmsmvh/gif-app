@@ -2,6 +2,7 @@ package com.example.gifapp.data.repository
 
 import com.example.gifapp.data.gif_online_api.GifApi
 import com.example.gifapp.data.mappers.toGifPictures
+import com.example.gifapp.domain.common.GIF_ITEMS_ON_PAGE
 import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.exceptions.LoadException
@@ -18,7 +19,6 @@ class OnlineGiphyImpl @Inject constructor(
 
     companion object {
         private const val API_KEY = "joROvSscQyfLRIpTj5JFKSk6FIJ2obMa"
-        private const val ITEMS_ON_PAGE = 48
         private const val STATUS_OK = 200
     }
 
@@ -27,14 +27,14 @@ class OnlineGiphyImpl @Inject constructor(
             when (query.isBlank()) {
                 true -> gifApi.getGifs(
                     api_key = API_KEY,
-                    limit = ITEMS_ON_PAGE,
-                    offset = (pageIndex - 1) * ITEMS_ON_PAGE,
+                    limit = GIF_ITEMS_ON_PAGE,
+                    offset = (pageIndex - 1) * GIF_ITEMS_ON_PAGE,
                 )
                 false -> gifApi.searchGifs(
                     api_key = API_KEY,
                     search_string = query,
-                    limit = ITEMS_ON_PAGE,
-                    offset = (pageIndex - 1) * ITEMS_ON_PAGE,
+                    limit = GIF_ITEMS_ON_PAGE,
+                    offset = (pageIndex - 1) * GIF_ITEMS_ON_PAGE,
                 )
             }
         } catch (e: IOException) {
@@ -51,7 +51,7 @@ class OnlineGiphyImpl @Inject constructor(
             return Result.failure(NothingFoundException())
         }
 
-        val totalPages = gifResponse.pagination.total_count / ITEMS_ON_PAGE
+        val totalPages = gifResponse.pagination.total_count / GIF_ITEMS_ON_PAGE
         val gifPictures = gifResponse.data.toGifPictures().excludePreviouslyRemovedGifs()
         val page = Page(totalPages, pageIndex, query, gifPictures)
         return Result.success(page)

@@ -1,17 +1,19 @@
 package com.example.gifapp.domain.usecases.local
 
+import android.content.Context
 import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.reposities.LocalGifRepository
+import com.example.gifapp.domain.reposities.RemovedGifsRepository
+import com.example.gifapp.utils.MediaSaverUtil
 import javax.inject.Inject
 
 class RemoveGifLocalUseCase @Inject constructor(
     private val localGifRepository: LocalGifRepository,
+    private val removedGifsStore: RemovedGifsRepository,
 ) {
-    suspend operator fun invoke(gifs: List<GifPicture>): Result<Boolean> {
-        return localGifRepository.remove(gifs)
-    }
-
-    suspend operator fun invoke(gif: GifPicture): Result<Boolean> {
-        return localGifRepository.remove(gif)
+    suspend operator fun invoke(context: Context, gif: GifPicture) {
+        localGifRepository.getLocalUrl(gif)?.let { MediaSaverUtil.removeGif(it) }
+        localGifRepository.remove(gif.id)
+        removedGifsStore.markRemoved(gif.id)
     }
 }

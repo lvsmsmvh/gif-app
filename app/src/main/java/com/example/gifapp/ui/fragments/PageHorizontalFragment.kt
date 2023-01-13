@@ -53,7 +53,7 @@ class PageHorizontalFragment : Fragment() {
         binding.btnDelete.setOnClickListener {
             currentGifPicture?.let {
                 gifPictureAdapter.remove(it)
-                viewModel.removeGif(it)
+                viewModel.removeGif(requireContext(), it)
             }
         }
     }

@@ -4,7 +4,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.gifapp.utils.logDebug
 import kotlinx.coroutines.*
 import kotlin.math.max
 
@@ -73,30 +72,14 @@ open class BaseViewModel : ViewModel() {
         return job
     }
 
-//    protected fun <T, R : Any> makeLoadingRequest2(
-//        liveData: LiveData<Map<T, LoadingState<R>>>,
-//        allowInterrupt: Boolean = false,
-//        source: suspend (() -> Result<T>),
-//    ): Job {
-//        val job = createJob()
-//        viewModelScope.launch(job + Dispatchers.IO) {
-//            if (liveData.value.isLoading() && !allowInterrupt) return@launch
-//            liveData.postValue(LoadingState.Loading)
-//            val startTime = System.currentTimeMillis()
-//            val response = source()
-//            yield()
-//            if (response.isFailure) {
-//                val executionTime = System.currentTimeMillis() - startTime
-//                delayIfExecutionTimeIsSmall(executionTime)
-//            }
-//            liveData.postValue(LoadingState.fromResult(response))
-//        }
-//        return job
-//    }
+    protected fun <T : Any> makeSimpleRequestForResult(source: suspend (() -> Result<T>)) {
+        val job = createJob()
+        viewModelScope.launch(job + Dispatchers.IO) {
+            source()
+        }
+    }
 
-    protected fun <T : Any> makeSimpleRequest(
-        source: suspend (() -> Result<T>),
-    ) {
+    protected fun makeSimpleRequest(source: suspend (() -> Unit)) {
         val job = createJob()
         viewModelScope.launch(job + Dispatchers.IO) {
             source()

@@ -68,13 +68,8 @@ class GifSourceImpl @Inject constructor(
             }
 
             body?.let { responseBody ->
-                // todo save
-                val inputStream = responseBody.byteStream()
                 val byteArray = responseBody.bytes()
-                val bufferedSource = responseBody.source()
-                val localCopyUrl = MediaSaverUtil.saveGif(
-                    context, byteArray, "Image_${gifPicture.id}"
-                )
+                val localCopyUrl = MediaSaverUtil.saveGif(context, byteArray, gifPicture)
                 localGifRepository.saveLocalUrl(gifPicture, localCopyUrl)
             }
         }
