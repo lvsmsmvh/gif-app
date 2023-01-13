@@ -9,7 +9,6 @@ import com.example.gifapp.ui.adapters.base.BaseRvAdapter
 import com.example.gifapp.ui.viewmodels.LoadingState
 import com.example.gifapp.ui.viewmodels.asFailed
 import com.example.gifapp.ui.viewmodels.asLoaded
-import com.example.gifapp.utils.logDebug
 
 abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
     private val onClicked: (GifPicture) -> Unit,
@@ -70,7 +69,7 @@ abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
         }
         gifPictureData.localUrl.asFailed()?.run {
             Glide.with(image.context)
-                .load(R.drawable.ic_launcher_foreground)    // todo error svg
+                .load(R.drawable.ic_error)
                 .run {
                     when (scaleStrategy) {
                         ScaleStrategy.CENTER_CROP -> centerCrop()
@@ -80,7 +79,7 @@ abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
                 .override(overrideWidth, overrideHeight)
                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .into(image)
-            gifPictureData.isSet = true // todo maybe not needed
+            gifPictureData.isSet = true
         }
     }
 
@@ -89,37 +88,5 @@ abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
         val gifPictureData = gifPicturesData[item]
         gifPictureData?.imageView = imageView
         tryToSetImage(item)
-//        images.add(GifImageViewIsSet(item, imageView))
-//
-//        localUrls.find { it.gifPicture == item }?.let { localUrl ->
-//            addUrl(item, localUrl.loadingState)
-//        }
-    }
-
-    inline fun <T> List<T>.forEachIterable(block: (T) -> Unit) {
-        with(iterator()) {
-            while (hasNext()) {
-                block(next())
-            }
-        }
-    }
-
-    inline fun <K, V> Map<K, V>.forEachIterable(block: (K, V) -> Unit) {
-        with(iterator()) {
-            while (hasNext()) {
-                val entry = next()
-                block(entry.key, entry.value)
-            }
-        }
-    }
-
-    public inline fun <T> Iterable<T>.findIterable(predicate: (T) -> Boolean): T? {
-        with(iterator()) {
-            while (hasNext()) {
-                val element = next()
-                if (predicate(element)) return element
-            }
-        }
-        return null
     }
 }

@@ -26,7 +26,7 @@ open class BaseViewModel : ViewModel() {
 
     private var jobs = mutableListOf<Job>()
 
-    protected fun createJob() = Job().apply { jobs.add(this) }
+    private fun createJob() = Job().apply { jobs.add(this) }
 
     override fun onCleared() {
         super.onCleared()
@@ -36,14 +36,6 @@ open class BaseViewModel : ViewModel() {
 
     protected fun <T> LiveData<T>.postValue(value: T?) {
         (this as? MutableLiveData)?.postValue(value)
-    }
-
-//    protected fun <T> LiveData<T>.postValue(value: T?) {
-//        (this as? MutableLiveData)?.postValue(value)
-//    }
-
-    protected fun <T> LiveData<T>.setToDefault() {
-        (this as? MutableLiveData)?.value = null
     }
 
     /**
@@ -70,13 +62,6 @@ open class BaseViewModel : ViewModel() {
             liveData.postValue(LoadingState.fromResult(response))
         }
         return job
-    }
-
-    protected fun <T : Any> makeSimpleRequestForResult(source: suspend (() -> Result<T>)) {
-        val job = createJob()
-        viewModelScope.launch(job + Dispatchers.IO) {
-            source()
-        }
     }
 
     protected fun makeSimpleRequest(source: suspend (() -> Unit)) {

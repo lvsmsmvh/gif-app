@@ -18,7 +18,6 @@ import com.example.gifapp.domain.exceptions.LoadException
 import com.example.gifapp.domain.exceptions.NothingFoundException
 import com.example.gifapp.ui.adapters.gif_picture.GifPictureSmallAdapter
 import com.example.gifapp.ui.viewmodels.*
-import com.example.gifapp.utils.logDebug
 import com.example.gifapp.utils.setCustomClickable
 import com.example.gifapp.utils.simpleNavigate
 import com.google.android.material.tabs.TabLayout
@@ -51,6 +50,7 @@ class PageFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initTabLayout()
+        initTextWatcher()
         initView()
         initData()
 
@@ -70,7 +70,6 @@ class PageFragment : Fragment() {
 
         tabLayout.addOnTabSelectedListener(object : OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                logDebug("tablayout onTabSelected ${tab?.position}")
                 when (tab?.position == tabOnline.position) {
                     true -> viewModel.goOnlineMode()
                     false -> viewModel.goOfflineMode()
@@ -85,14 +84,16 @@ class PageFragment : Fragment() {
         })
     }
 
-    private fun initView() {
+    private fun initTextWatcher() {
         _textWatcher = binding.searchView.addTextChangedListener(
             onTextChanged = { text, _, _, _ ->
                 val textAfter = text?.toString() ?: return@addTextChangedListener
                 viewModel.search(textAfter)
             }
         )
+    }
 
+    private fun initView() {
         binding.btnPrev.setOnClickListener { viewModel.loadPreviousPage() }
         binding.btnNext.setOnClickListener { viewModel.loadNextPage() }
         binding.btnReload.setOnClickListener {
@@ -141,27 +142,21 @@ class PageFragment : Fragment() {
             updateLayout(state)
             when (state) {
                 is LoadingState.Loading -> {
-                    logDebug("LoadingState.Loading")
                 }
                 is LoadingState.Failed -> {
-                    logDebug("LoadingState.Failed")
                     when (val exception = state.throwable) {
                         is LoadException -> {
                             binding.tvError.setText(R.string.error_loading)
                             binding.tvErrorSmall.text = exception.message
-                            logDebug("LoadingState.Failed: ${exception.message}")
                         }
                         is NothingFoundException -> {
                             binding.tvError.setText(R.string.nothing_found)
                             binding.tvErrorSmall.setText(R.string.this_page_is_empty)
-                            logDebug("LoadingState.Failed: ${getString(R.string.this_page_is_empty)}")
                             binding.btnReload.isVisible = false
                         }
                     }
                 }
                 is LoadingState.Loaded -> {
-                    logDebug("LoadingState.Loaded: ${state.result.gifPictures.size}")
-//                    gifPictureAdapter.clear()
                     gifPictureAdapter.set(state.result.gifPictures)
                     binding.pagination.isVisible = true
                     viewModel.loadImages(state.result.gifPictures)
@@ -174,27 +169,6 @@ class PageFragment : Fragment() {
         binding.layoutLoading.isVisible = loadingState.isLoading()
         binding.layoutFailed.isVisible = loadingState.isFailed()
         binding.layoutLoaded.isVisible = loadingState.isLoaded()
-    }
-
-    private fun configureButtons(loadingStatePage: LoadingState<Page>) {
-        loadingStatePage.asLoaded()?.result?.let { page ->
-            // loaded
-            val pageNumber = page.pageNumber
-            val pagesAmount = page.pagesAmount
-            binding.tvPageIndicator.text = getString(R.string.divider_ph, pageNumber, pagesAmount)
-            val isFirstPage = pageNumber == 1
-            val isLastPage = pageNumber == pagesAmount
-            binding.btnPrev.setCustomClickable(!isFirstPage)
-            binding.btnNext.setCustomClickable(!isLastPage)
-            binding.pagination.isVisible = true
-        } ?: loadingStatePage.asFailed()?.throwable?.let {
-            // failed
-
-        } ?: kotlin.run {
-            // loading
-            binding.btnPrev.setCustomClickable(false)
-            binding.btnNext.setCustomClickable(false)
-        }
     }
 
     override fun onDestroyView() {

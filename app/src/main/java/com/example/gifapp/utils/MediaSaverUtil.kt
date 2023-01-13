@@ -1,6 +1,5 @@
 package com.example.gifapp.utils
 
-import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
@@ -19,55 +18,11 @@ object MediaSaverUtil {
     private fun getFileNameFor(gifPicture: GifPicture): String {
         return "Image_${gifPicture.id}"
     }
-    fun getUriFromDisplayName(context: Context, displayName: String): Uri? {
-        val projection: Array<String> = arrayOf(MediaStore.Files.FileColumns._ID)
-
-        val cursor = context.contentResolver.query(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
-            MediaStore.Files.FileColumns.DISPLAY_NAME + " LIKE ?", arrayOf(displayName), null
-        )!!
-        cursor.moveToFirst()
-        return if (cursor.count > 0) {
-            val columnIndex = cursor.getColumnIndex(projection[0])
-            val fileId = cursor.getLong(columnIndex)
-            cursor.close()
-            Uri.parse(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString() + "/" + fileId)
-        } else {
-            null
-        }
-    }
-    fun removeGif(context: Context, gifPicture: GifPicture) {
-        logDebug("Deleting ${gifPicture.id} ...")
-
-        val displayName = getFileNameFor(gifPicture)
-        val uri = getUriFromDisplayName(context, displayName)
-        if (uri != null) {
-            val resolver: ContentResolver = context.contentResolver
-            val selectionArgsPdf = arrayOf(displayName)
-            try {
-                resolver.delete(
-                    uri,
-                    MediaStore.Files.FileColumns.DISPLAY_NAME + "=?",
-                    selectionArgsPdf
-                )
-                logDebug("Deleted successfully ${gifPicture.id}")
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-                // show some alert message
-                logDebug("Deleting failed ${gifPicture.id}")
-                logDebug(ex.message.toString())
-            }
-        }
-
-
-    }
 
     fun removeGif(localUrl: String) {
-        logDebug("File deleting $localUrl")
         val file = File(localUrl)
         file.delete()
     }
-
 
     /**
      * Returns a path for the new saved file.
@@ -92,7 +47,6 @@ object MediaSaverUtil {
 
         outputStream.write(bytes, 0, bytes.size)
         outputStream.close()
-        logDebug("File saving $path")
         return path
     }
 

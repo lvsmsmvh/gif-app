@@ -1,9 +1,9 @@
 package com.example.gifapp.ui.viewmodels
 
-import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.gifapp.domain.common.FIRST_PAGE_INDEX
 import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.usecases.base.LoadPageUseCase
@@ -11,7 +11,10 @@ import com.example.gifapp.domain.usecases.local.LoadPageLocalUseCase
 import com.example.gifapp.domain.usecases.local.RemoveGifLocalUseCase
 import com.example.gifapp.domain.usecases.online.LoadPageOnlineUseCase
 import com.example.gifapp.domain.usecases.other.DownloadAndGetLocalUrlUseCase
-import com.example.gifapp.utils.logDebug
+import com.example.gifapp.ui.entities.NetworkMode
+import com.example.gifapp.ui.entities.PageLoadAttempt
+import com.example.gifapp.ui.entities.PaginationModel
+import com.example.gifapp.ui.entities.ValueChange
 import com.example.gifapp.utils.transform
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
@@ -24,26 +27,6 @@ class PageViewModel @Inject constructor(
     private val downloadAndGetLocalUrlUseCase: DownloadAndGetLocalUrlUseCase,
     private val removeGifLocalUseCase: RemoveGifLocalUseCase,
 ) : BaseViewModel() {
-
-    companion object {
-        private const val FIRST_PAGE_INDEX = 1
-    }
-
-    private enum class NetworkMode { ONLINE, OFFLINE }
-    private data class PageLoadAttempt(val pageIndex: Int, val query: String)
-
-    sealed class ValueChange<out T : Any> {
-        object Previous : ValueChange<Nothing>()
-        data class New<out T: Any>(val value: T) : ValueChange<T>()
-
-        fun asNewOrNull() = this as? New<T>
-    }
-    data class PaginationModel(
-        val hideButtons: Boolean,
-        val isPrevEnabled: ValueChange<Boolean> = ValueChange.Previous,
-        val isNextEnabled: ValueChange<Boolean> = ValueChange.Previous,
-        val indicator: ValueChange<String> = ValueChange.Previous,
-    )
 
     private var networkMode: NetworkMode = NetworkMode.ONLINE
     private var pageLoadAttempt: PageLoadAttempt? = null
@@ -65,21 +48,12 @@ class PageViewModel @Inject constructor(
         return@transform PaginationModel(hideButtons = it.isLoading())
     }
 
-    fun removeGif(context: Context, gifPicture: GifPicture) {
-        // delete from loaded page
-        loadedPageOrNull()?.let {
-            val pictures = it.gifPictures
-            if (!pictures.contains(gifPicture)) return
-            val mutablePictures = pictures.toMutableList()
-            mutablePictures.remove(gifPicture)
-            val newPage = it.copy(gifPictures = mutablePictures)
-            page.postValue(LoadingState.Loaded(newPage))
-        }
+    fun goOfflineMode() {
+        changeModeTo(NetworkMode.OFFLINE)
+    }
 
-        // delete from storage
-        makeSimpleRequest {
-            removeGifLocalUseCase(context, gifPicture)
-        }
+    fun goOnlineMode() {
+        changeModeTo(NetworkMode.ONLINE)
     }
 
     fun updateFailedPage() {
@@ -89,16 +63,7 @@ class PageViewModel @Inject constructor(
     }
 
     fun loadFirstPageIfNothingLoaded() {
-        loadedPageOrNull() ?: loadPage(FIRST_PAGE_INDEX, "")
-    }
-
-    fun search(query: String) {
-        loadedPageOrNull()?.let {
-            val sameQuery = it.query == query
-            if (sameQuery) return
-        }
-
-        loadPage(FIRST_PAGE_INDEX, query)
+        getLoadedPageOrNull() ?: loadPage(FIRST_PAGE_INDEX, "")
     }
 
     fun loadNextPage() {
@@ -109,41 +74,13 @@ class PageViewModel @Inject constructor(
         updatePageWithIndexChange(-1)
     }
 
-    private fun updatePageWithIndexChange(changeIndex: Int) {
-        loadedPageOrNull()?.let { currentPage ->
-            loadPage(currentPage.pageNumber + changeIndex, currentPage.query)
-        }
-    }
-
-    private fun loadPage(pageIndex: Int, query: String) {
-        logDebug("loadPage $pageIndex")
-        loadedPageOrNull()?.let { currentPage ->
-            val samePage = currentPage.pageNumber == pageIndex && currentPage.query == query
-            if (samePage) {
-                return
-            }
+    fun search(query: String) {
+        getLoadedPageOrNull()?.let {
+            val sameQuery = it.query == query
+            if (sameQuery) return
         }
 
-        loadPageEvenIfLoaded(pageIndex, query)
-    }
-
-    private fun loadedPageOrNull(): Page? {
-        return page.value?.asLoaded()?.result
-    }
-
-    private fun loadPageEvenIfLoaded(pageIndex: Int, query: String) {
-        logDebug("loadPageEvenIfLoaded $pageIndex")
-        pageLoadAttempt = PageLoadAttempt(pageIndex, query)
-
-        val useCase: LoadPageUseCase = when (networkMode) {
-            NetworkMode.ONLINE -> loadPageOnlineUseCase
-            NetworkMode.OFFLINE -> loadPageLocalUseCase
-        }
-
-        loadingPageJob?.cancel()
-        loadingPageJob = makeLoadingRequest(page) {
-            useCase(pageIndex, query)
-        }
+        loadPage(FIRST_PAGE_INDEX, query)
     }
 
     fun loadImages(gifPictures: List<GifPicture>) {
@@ -160,19 +97,61 @@ class PageViewModel @Inject constructor(
             }
         }
     }
+    fun removeGif(gifPicture: GifPicture) {
+        // update loaded page
+        getLoadedPageOrNull()?.let {
+            val pictures = it.gifPictures
+            if (!pictures.contains(gifPicture)) return
+            val mutablePictures = pictures.toMutableList()
+            mutablePictures.remove(gifPicture)
+            val newPage = it.copy(gifPictures = mutablePictures)
+            page.postValue(LoadingState.Loaded(newPage))
+        }
 
-    fun goOfflineMode() {
-        changeModeTo(NetworkMode.OFFLINE)
-    }
-
-    fun goOnlineMode() {
-        changeModeTo(NetworkMode.ONLINE)
+        // delete from storage
+        makeSimpleRequest {
+            removeGifLocalUseCase(gifPicture)
+        }
     }
 
     private fun changeModeTo(networkMode: NetworkMode) {
-        logDebug("tablayout Change mode to ${networkMode.name}")
         if (this.networkMode == networkMode) return
         this.networkMode = networkMode
         loadPageEvenIfLoaded(FIRST_PAGE_INDEX, "")
+    }
+
+    private fun updatePageWithIndexChange(changeIndex: Int) {
+        getLoadedPageOrNull()?.let { currentPage ->
+            loadPage(currentPage.pageNumber + changeIndex, currentPage.query)
+        }
+    }
+
+    private fun loadPage(pageIndex: Int, query: String) {
+        getLoadedPageOrNull()?.let { currentPage ->
+            val samePage = currentPage.pageNumber == pageIndex && currentPage.query == query
+            if (samePage) {
+                return
+            }
+        }
+
+        loadPageEvenIfLoaded(pageIndex, query)
+    }
+
+    private fun getLoadedPageOrNull(): Page? {
+        return page.value?.asLoaded()?.result
+    }
+
+    private fun loadPageEvenIfLoaded(pageIndex: Int, query: String) {
+        pageLoadAttempt = PageLoadAttempt(pageIndex, query)
+
+        val useCase: LoadPageUseCase = when (networkMode) {
+            NetworkMode.ONLINE -> loadPageOnlineUseCase
+            NetworkMode.OFFLINE -> loadPageLocalUseCase
+        }
+
+        loadingPageJob?.cancel()
+        loadingPageJob = makeLoadingRequest(page) {
+            useCase(pageIndex, query)
+        }
     }
 }

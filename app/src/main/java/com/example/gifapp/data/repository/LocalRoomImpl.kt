@@ -8,9 +8,7 @@ import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.exceptions.NothingFoundException
 import com.example.gifapp.domain.reposities.LocalGifRepository
-import com.example.gifapp.utils.logDebug
 import javax.inject.Inject
-import kotlin.math.ceil
 import kotlin.math.min
 
 class LocalRoomImpl @Inject constructor(
@@ -54,7 +52,6 @@ class LocalRoomImpl @Inject constructor(
             return Result.failure(NothingFoundException())
         }
 
-        logDebug("load local page, totalItemsAvailable = $totalItemsAvailable, pages = $pagesAmount")
         val page = Page(pagesAmount, pageIndex, query, gifPictures)
         return Result.success(page)
     }

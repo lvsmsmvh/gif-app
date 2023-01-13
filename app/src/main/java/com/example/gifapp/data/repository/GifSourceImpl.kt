@@ -7,12 +7,10 @@ import com.example.gifapp.domain.exceptions.LoadException
 import com.example.gifapp.domain.reposities.GifSourceRepository
 import com.example.gifapp.domain.reposities.LocalGifRepository
 import com.example.gifapp.utils.MediaSaverUtil
-import com.example.gifapp.utils.logDebug
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
-import kotlin.io.path.Path
 
 class GifSourceImpl @Inject constructor(
     private val context: Context,

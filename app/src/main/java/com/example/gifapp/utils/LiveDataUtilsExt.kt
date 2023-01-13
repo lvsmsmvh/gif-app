@@ -3,14 +3,11 @@ package com.example.gifapp.utils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 
-fun <A, B> transformWithDefault(
+fun <A, B> transform(
     source: LiveData<A>,
-    defaultValue: B,
-    mapper: (A) -> B?,
+    mapper: (A) -> B,
 ): LiveData<B> {
-
     val mediatorLiveData = MediatorLiveData<B>()
-    mediatorLiveData.value = defaultValue!!
 
     mediatorLiveData.addSource(source) { aValue ->
         mapper(aValue)?.let { mediatorLiveData.postValue(it) }
@@ -19,11 +16,14 @@ fun <A, B> transformWithDefault(
     return mediatorLiveData
 }
 
-fun <A, B> transform(
+fun <A, B> transformWithDefault(
     source: LiveData<A>,
-    mapper: (A) -> B,
+    defaultValue: B,
+    mapper: (A) -> B?,
 ): LiveData<B> {
+
     val mediatorLiveData = MediatorLiveData<B>()
+    mediatorLiveData.value = defaultValue!!
 
     mediatorLiveData.addSource(source) { aValue ->
         mapper(aValue)?.let { mediatorLiveData.postValue(it) }

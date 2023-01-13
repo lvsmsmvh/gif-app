@@ -1,6 +1,5 @@
 package com.example.gifapp.domain.usecases.local
 
-import android.content.Context
 import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.reposities.LocalGifRepository
 import com.example.gifapp.domain.reposities.RemovedGifsRepository
@@ -11,7 +10,7 @@ class RemoveGifLocalUseCase @Inject constructor(
     private val localGifRepository: LocalGifRepository,
     private val removedGifsStore: RemovedGifsRepository,
 ) {
-    suspend operator fun invoke(context: Context, gif: GifPicture) {
+    operator fun invoke(gif: GifPicture) {
         localGifRepository.getLocalUrl(gif)?.let { MediaSaverUtil.removeGif(it) }
         localGifRepository.remove(gif.id)
         removedGifsStore.markRemoved(gif.id)

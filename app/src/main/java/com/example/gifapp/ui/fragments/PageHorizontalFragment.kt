@@ -53,7 +53,7 @@ class PageHorizontalFragment : Fragment() {
         binding.btnDelete.setOnClickListener {
             currentGifPicture?.let {
                 gifPictureAdapter.remove(it)
-                viewModel.removeGif(requireContext(), it)
+                viewModel.removeGif(it)
             }
         }
     }
@@ -79,7 +79,7 @@ class PageHorizontalFragment : Fragment() {
 
     private fun configureViewPager(gifPictures: List<GifPicture>) {
         _gifPictureAdapter = GifPictureFullAdapter(
-            onClicked = { gifPicture ->
+            onClicked = {
                 val toolbarIsVisible = binding.toolbar.isVisible
                 binding.toolbar.isVisible = !toolbarIsVisible
             },

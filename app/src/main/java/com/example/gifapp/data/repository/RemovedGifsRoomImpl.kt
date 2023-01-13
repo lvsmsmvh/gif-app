@@ -8,10 +8,8 @@ import javax.inject.Inject
 class RemovedGifsRoomImpl @Inject constructor(
     private val removedGifsDao: RemovedGifsDao,
 ): RemovedGifsRepository {
-    override fun markRemoved(gifId: String): Result<Boolean> {
-        val entity = RemovedGifDBEntity(gifId)
-        removedGifsDao.insert(entity)
-        return Result.success(true)
+    override fun markRemoved(gifId: String) {
+        removedGifsDao.insert(RemovedGifDBEntity(gifId))
     }
 
     override fun getAllRemovedGifIds(): Result<List<String>> {
