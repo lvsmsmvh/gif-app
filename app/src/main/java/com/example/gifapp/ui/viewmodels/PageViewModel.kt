@@ -11,6 +11,7 @@ import com.example.gifapp.domain.usecases.local.RemoveGifLocalUseCase
 import com.example.gifapp.domain.usecases.online.LoadPageOnlineUseCase
 import com.example.gifapp.domain.usecases.other.DownloadAndGetLocalUrlUseCase
 import com.example.gifapp.utils.logDebug
+import com.example.gifapp.utils.transform
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -30,29 +31,41 @@ class PageViewModel @Inject constructor(
     private enum class NetworkMode { ONLINE, OFFLINE }
     private data class PageLoadAttempt(val pageIndex: Int, val query: String)
 
+    sealed class ValueChange<out T : Any> {
+        object Previous : ValueChange<Nothing>()
+        data class New<out T: Any>(val value: T) : ValueChange<T>()
+
+        fun asNewOrNull() = this as? New<T>
+    }
+    data class PaginationModel(
+        val hideButtons: Boolean,
+        val isPrevEnabled: ValueChange<Boolean> = ValueChange.Previous,
+        val isNextEnabled: ValueChange<Boolean> = ValueChange.Previous,
+        val indicator: ValueChange<String> = ValueChange.Previous,
+    )
+
     private var networkMode: NetworkMode = NetworkMode.ONLINE
     private var pageLoadAttempt: PageLoadAttempt? = null
     private var loadingPageJob: Job? = null
     private var loadingImagesJob: Job? = null
 
-
-    val page: LiveData<LoadingState<Page>> = MutableLiveData()
     val localUrls: LiveData<Map<GifPicture, LiveData<LoadingState<String>>>> = MutableLiveData()
+    val page: LiveData<LoadingState<Page>> = MutableLiveData()
+    val pagination: LiveData<PaginationModel> = transform(page) {
+        it.asLoaded()?.result?.let { page ->
+            return@transform PaginationModel(
+                hideButtons = false,
+                isPrevEnabled = ValueChange.New(page.pageNumber != 1),
+                isNextEnabled = ValueChange.New(page.pageNumber != page.pagesAmount),
+                indicator = ValueChange.New("" + page.pageNumber + "/" + page.pagesAmount)
+            )
+        }
 
-
+        return@transform PaginationModel(hideButtons = it.isLoading())
+    }
 
     fun removeGif(gifPicture: GifPicture) {
-        removeGifFromLoadedPage(gifPicture)
-        removeGifFromStorage(gifPicture)
-    }
-
-    private fun removeGifFromStorage(gifPicture: GifPicture) {
-        makeSimpleRequest {
-            removeGifLocalUseCase(gifPicture)
-        }
-    }
-
-    private fun removeGifFromLoadedPage(gifPicture: GifPicture) {
+        // delete from loaded page
         loadedPageOrNull()?.let {
             val pictures = it.gifPictures
             if (!pictures.contains(gifPicture)) return
@@ -60,6 +73,11 @@ class PageViewModel @Inject constructor(
             mutablePictures.remove(gifPicture)
             val newPage = it.copy(gifPictures = mutablePictures)
             page.postValue(LoadingState.Loaded(newPage))
+        }
+
+        // delete from storage
+        makeSimpleRequest {
+            removeGifLocalUseCase(gifPicture)
         }
     }
 

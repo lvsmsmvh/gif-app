@@ -124,9 +124,21 @@ class PageFragment : Fragment() {
             }
         }
 
+        viewModel.pagination.observe(viewLifecycleOwner) { pagination ->
+            binding.pagination.setCustomClickable(!pagination.hideButtons)
+
+            pagination.isPrevEnabled.asNewOrNull()?.value
+                ?.let { binding.btnPrev.setCustomClickable(it) }
+
+            pagination.isNextEnabled.asNewOrNull()?.value
+                ?.let { binding.btnNext.setCustomClickable(it) }
+
+            pagination.indicator.asNewOrNull()?.value
+                ?.let { binding.tvPageIndicator.text = it }
+        }
+
         viewModel.page.observe(viewLifecycleOwner) { state ->
             updateLayout(state)
-            configureButtons(state)
             when (state) {
                 is LoadingState.Loading -> {
                     logDebug("LoadingState.Loading")
@@ -166,6 +178,7 @@ class PageFragment : Fragment() {
 
     private fun configureButtons(loadingStatePage: LoadingState<Page>) {
         loadingStatePage.asLoaded()?.result?.let { page ->
+            // loaded
             val pageNumber = page.pageNumber
             val pagesAmount = page.pagesAmount
             binding.tvPageIndicator.text = getString(R.string.divider_ph, pageNumber, pagesAmount)
@@ -174,8 +187,11 @@ class PageFragment : Fragment() {
             binding.btnPrev.setCustomClickable(!isFirstPage)
             binding.btnNext.setCustomClickable(!isLastPage)
             binding.pagination.isVisible = true
+        } ?: loadingStatePage.asFailed()?.throwable?.let {
+            // failed
+
         } ?: kotlin.run {
-            // not loaded
+            // loading
             binding.btnPrev.setCustomClickable(false)
             binding.btnNext.setCustomClickable(false)
         }

@@ -21,6 +21,19 @@ fun <A, B> transformWithDefault(
 
 fun <A, B> transform(
     source: LiveData<A>,
+    mapper: (A) -> B,
+): LiveData<B> {
+    val mediatorLiveData = MediatorLiveData<B>()
+
+    mediatorLiveData.addSource(source) { aValue ->
+        mapper(aValue)?.let { mediatorLiveData.postValue(it) }
+    }
+
+    return mediatorLiveData
+}
+
+fun <A, B> trigger(
+    source: LiveData<A>,
     mapper: (A) -> Unit,
 ): LiveData<B> {
     val mediatorLiveData = MediatorLiveData<B>()
