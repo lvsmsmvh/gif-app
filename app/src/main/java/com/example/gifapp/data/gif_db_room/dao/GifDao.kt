@@ -8,8 +8,8 @@ interface GifDao {
     @Query("SELECT COUNT(*) FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs)")
     fun amountGifs(): Int
 
-    @Query("SELECT * FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs) LIMIT :from, :to")
-    fun getGifEntities(from: Int, to: Int): List<GifDBEntity>
+    @Query("SELECT * FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs) LIMIT :limit OFFSET :offset")
+    fun getGifEntities(limit: Int, offset: Int): List<GifDBEntity>
 
     @Query("SELECT * FROM gifs WHERE id NOT IN (SELECT * FROM removed_gifs)")
     fun getGifEntities(): List<GifDBEntity>

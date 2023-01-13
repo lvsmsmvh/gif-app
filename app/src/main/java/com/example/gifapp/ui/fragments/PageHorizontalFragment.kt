@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
@@ -13,9 +14,6 @@ import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.ui.adapters.gif_picture.GifPictureFullAdapter
 import com.example.gifapp.ui.viewmodels.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 
 @AndroidEntryPoint
@@ -47,14 +45,25 @@ class PageHorizontalFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initView()
         initData()
+    }
+
+    private fun initView() {
+        binding.btnDelete.setOnClickListener {
+            currentGifPicture?.let {
+                gifPictureAdapter.remove(it)
+                viewModel.removeGif(it)
+            }
+        }
     }
 
     private fun initData() {
         viewModel.page.observe(viewLifecycleOwner) { state ->
-            val gifPictures = state.asLoaded()?.result?.gifPictures ?: return@observe
-            configureViewPager(gifPictures)
-//            viewModel.loadImages(state.result.gifPictures)
+            state.asLoaded()?.result?.gifPictures?.let {
+                configureViewPager(it)
+                viewModel.page.removeObservers(viewLifecycleOwner)
+            }
         }
 
         viewModel.localUrls.observe(viewLifecycleOwner) { gifPictureLiveDataMap ->
@@ -66,18 +75,13 @@ class PageHorizontalFragment : Fragment() {
                 }
             }
         }
-//        viewModel.localUrlsOld.observe(viewLifecycleOwner) {
-//            if (it == null) return@observe
-//            CoroutineScope(Dispatchers.Main).launch {
-//                gifPictureAdapter.setUrls(requireContext(), it)
-//            }
-//        }
     }
 
     private fun configureViewPager(gifPictures: List<GifPicture>) {
         _gifPictureAdapter = GifPictureFullAdapter(
             onClicked = { gifPicture ->
-                // todo
+                val toolbarIsVisible = binding.toolbar.isVisible
+                binding.toolbar.isVisible = !toolbarIsVisible
             },
         )
 
@@ -86,8 +90,9 @@ class PageHorizontalFragment : Fragment() {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                currentGifPicture = gifPictures[position]
-                setIndicator(position + 1, gifPictures.size)
+
+                currentGifPicture = gifPictureAdapter.items[position]
+                setIndicator(position + 1, gifPictureAdapter.itemCount)
             }
         })
 
@@ -104,7 +109,7 @@ class PageHorizontalFragment : Fragment() {
     }
 
     private fun setIndicator(current: Int, total: Int) {
-        val indicatorText = getString(R.string.page_indicator_ph, current, total)
+        val indicatorText = getString(R.string.divider_ph, current, total)
         binding.tvPageIndicator.text = indicatorText
     }
 

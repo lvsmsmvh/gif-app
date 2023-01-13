@@ -8,7 +8,9 @@ import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.exceptions.NothingFoundException
 import com.example.gifapp.domain.reposities.LocalGifRepository
 import com.example.gifapp.domain.reposities.RemovedGifsRepository
+import com.example.gifapp.utils.logDebug
 import javax.inject.Inject
+import kotlin.math.min
 
 class LocalRoomImpl @Inject constructor(
     private val gifDao: GifDao,
@@ -39,18 +41,19 @@ class LocalRoomImpl @Inject constructor(
     }
 
     override suspend fun loadPage(pageIndex: Int, query: String): Result<Page> {
-        val from = (pageIndex - 1) * ITEMS_ON_PAGE
-        val to = from + ITEMS_ON_PAGE
+        val offset = (pageIndex - 1) * ITEMS_ON_PAGE
+        val limit = ITEMS_ON_PAGE
         var totalItemsAvailable = 0
         val entities = when (query.isBlank()) {
             true -> {
                 totalItemsAvailable = gifDao.amountGifs()
-                gifDao.getGifEntities(from, to)
+                gifDao.getGifEntities(limit, offset)
             }
             false -> {
                 val allResults = gifDao.search(query)
                 totalItemsAvailable = allResults.size
-                allResults.subList(from, to)
+                val safeLimit = min(totalItemsAvailable - offset, limit)
+                allResults.subList(offset, offset + safeLimit)
             }
         }
 
@@ -61,6 +64,10 @@ class LocalRoomImpl @Inject constructor(
             return Result.failure(NothingFoundException())
         }
         val page = Page(pagesAmount, pageIndex, query, gifPictures)
+
+        logDebug("DBRoom return page from $offset")
+        logDebug("DBRoom return page to $limit")
+        logDebug("DBRoom return page $pageIndex, total pages $pagesAmount, items ${gifPictures.size}")
         return Result.success(page)
     }
 

@@ -7,8 +7,10 @@ import com.example.gifapp.domain.entities.GifPicture
 import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.usecases.base.LoadPageUseCase
 import com.example.gifapp.domain.usecases.local.LoadPageLocalUseCase
+import com.example.gifapp.domain.usecases.local.RemoveGifLocalUseCase
 import com.example.gifapp.domain.usecases.online.LoadPageOnlineUseCase
 import com.example.gifapp.domain.usecases.other.DownloadAndGetLocalUrlUseCase
+import com.example.gifapp.utils.logDebug
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -18,42 +20,105 @@ class PageViewModel @Inject constructor(
     private val loadPageOnlineUseCase: LoadPageOnlineUseCase,
     private val loadPageLocalUseCase: LoadPageLocalUseCase,
     private val downloadAndGetLocalUrlUseCase: DownloadAndGetLocalUrlUseCase,
+    private val removeGifLocalUseCase: RemoveGifLocalUseCase,
 ) : BaseViewModel() {
 
     companion object {
         private const val FIRST_PAGE_INDEX = 1
     }
 
-    private enum class CurrentMode { ONLINE, OFFLINE }
+    private enum class NetworkMode { ONLINE, OFFLINE }
+    private data class PageLoadAttempt(val pageIndex: Int, val query: String)
 
-    private var currentMode: CurrentMode = CurrentMode.ONLINE
-
+    private var networkMode: NetworkMode = NetworkMode.ONLINE
+    private var pageLoadAttempt: PageLoadAttempt? = null
     private var loadingPageJob: Job? = null
     private var loadingImagesJob: Job? = null
 
-    private val loadedLocalUrls = mutableMapOf<GifPicture, LoadingState<String>>()
 
     val page: LiveData<LoadingState<Page>> = MutableLiveData()
-//    val localUrlsOld: LiveData<Map<GifPicture, LoadingState<String>>> = MutableLiveData()
-
     val localUrls: LiveData<Map<GifPicture, LiveData<LoadingState<String>>>> = MutableLiveData()
 
-//    val loadedLocalUrls: LiveData<Map<GifPicture, LoadingState<String>>> = transform(localUrls) {
-//
-//    }
 
-    fun loadFirstPage() {
-        loadPage(FIRST_PAGE_INDEX, "")
+
+    fun removeGif(gifPicture: GifPicture) {
+        removeGifFromLoadedPage(gifPicture)
+        removeGifFromStorage(gifPicture)
+    }
+
+    private fun removeGifFromStorage(gifPicture: GifPicture) {
+        makeSimpleRequest {
+            removeGifLocalUseCase(gifPicture)
+        }
+    }
+
+    private fun removeGifFromLoadedPage(gifPicture: GifPicture) {
+        loadedPageOrNull()?.let {
+            val pictures = it.gifPictures
+            if (!pictures.contains(gifPicture)) return
+            val mutablePictures = pictures.toMutableList()
+            mutablePictures.remove(gifPicture)
+            val newPage = it.copy(gifPictures = mutablePictures)
+            page.postValue(LoadingState.Loaded(newPage))
+        }
+    }
+
+    fun updateFailedPage() {
+        pageLoadAttempt?.let {
+            loadPage(it.pageIndex, it.query)
+        }
+    }
+
+    fun loadFirstPageIfNothingLoaded() {
+        loadedPageOrNull() ?: loadPage(FIRST_PAGE_INDEX, "")
     }
 
     fun search(query: String) {
+        loadedPageOrNull()?.let {
+            val sameQuery = it.query == query
+            if (sameQuery) return
+        }
+
         loadPage(FIRST_PAGE_INDEX, query)
     }
 
-    fun loadPage(pageIndex: Int, query: String) {
-        val useCase: LoadPageUseCase = when (currentMode) {
-            CurrentMode.ONLINE -> loadPageOnlineUseCase
-            CurrentMode.OFFLINE -> loadPageLocalUseCase
+    fun loadNextPage() {
+        updatePageWithIndexChange(1)
+    }
+
+    fun loadPreviousPage() {
+        updatePageWithIndexChange(-1)
+    }
+
+    private fun updatePageWithIndexChange(changeIndex: Int) {
+        loadedPageOrNull()?.let { currentPage ->
+            loadPage(currentPage.pageNumber + changeIndex, currentPage.query)
+        }
+    }
+
+    private fun loadPage(pageIndex: Int, query: String) {
+        logDebug("loadPage $pageIndex")
+        loadedPageOrNull()?.let { currentPage ->
+            val samePage = currentPage.pageNumber == pageIndex && currentPage.query == query
+            if (samePage) {
+                return
+            }
+        }
+
+        loadPageEvenIfLoaded(pageIndex, query)
+    }
+
+    private fun loadedPageOrNull(): Page? {
+        return page.value?.asLoaded()?.result
+    }
+
+    private fun loadPageEvenIfLoaded(pageIndex: Int, query: String) {
+        logDebug("loadPageEvenIfLoaded $pageIndex")
+        pageLoadAttempt = PageLoadAttempt(pageIndex, query)
+
+        val useCase: LoadPageUseCase = when (networkMode) {
+            NetworkMode.ONLINE -> loadPageOnlineUseCase
+            NetworkMode.OFFLINE -> loadPageLocalUseCase
         }
 
         loadingPageJob?.cancel()
@@ -65,9 +130,6 @@ class PageViewModel @Inject constructor(
     fun loadImages(gifPictures: List<GifPicture>) {
         loadingImagesJob?.cancel()
         loadingImagesJob = viewModelScope.launch(Dispatchers.IO) {
-
-//            loadedLocalUrls.clear()
-
             gifPictures.associateWith {
                 MutableLiveData<LoadingState<String>>().apply { postValue(LoadingState.Loading) }
             }.apply { localUrls.postValue(this) }.forEach { (gifPicture, liveData) ->
@@ -77,40 +139,21 @@ class PageViewModel @Inject constructor(
                         .onFailure { liveData.postValue(LoadingState.Failed(it)) }
                 }
             }
-
-//            launch {
-//                fun putNewState(loadingState: LoadingState<String>) {
-//                    loadedLocalUrls[gifPicture] = loadingState
-//                    localUrlsOld.postValue(loadedLocalUrls)
-//                }
-//
-//                downloadAndGetLocalUrlUseCase(gifPicture)
-//                    .onSuccess { putNewState(LoadingState.Loaded(it)) }
-//                    .onFailure { putNewState(LoadingState.Failed(it)) }
-//            }
-//
-//            gifPictures.forEach { gifPicture ->
-//                launch {
-//                    fun putNewState(loadingState: LoadingState<String>) {
-//                        loadedLocalUrls[gifPicture] = loadingState
-//                        localUrlsOld.postValue(loadedLocalUrls)
-//                    }
-//
-//                    downloadAndGetLocalUrlUseCase(gifPicture)
-//                        .onSuccess { putNewState(LoadingState.Loaded(it)) }
-//                        .onFailure { putNewState(LoadingState.Failed(it)) }
-//                }
-//            }
         }
     }
 
     fun goOfflineMode() {
-        currentMode = CurrentMode.OFFLINE
-        loadFirstPage()
+        changeModeTo(NetworkMode.OFFLINE)
     }
 
     fun goOnlineMode() {
-        currentMode = CurrentMode.ONLINE
-        loadFirstPage()
+        changeModeTo(NetworkMode.ONLINE)
+    }
+
+    private fun changeModeTo(networkMode: NetworkMode) {
+        logDebug("tablayout Change mode to ${networkMode.name}")
+        if (this.networkMode == networkMode) return
+        this.networkMode = networkMode
+        loadPageEvenIfLoaded(FIRST_PAGE_INDEX, "")
     }
 }

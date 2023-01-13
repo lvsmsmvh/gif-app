@@ -29,12 +29,15 @@ class GifSourceImpl @Inject constructor(
             return Result.success(it)
         }
 
-        val loadingJob =
-            loadingGifJobs.firstOrNull { it.gifId == gifPicture.id && it.job.isActive }?.job
-                ?: createLoadingJob(gifPicture)
-                    .also { loadingGifJobs.add(LoadingGifJob(gifPicture.id, it)) }
+        val loadingGifJobsCopy = loadingGifJobs.toList()
+        val loadingJob = loadingGifJobsCopy.find { it.gifId == gifPicture.id && it.job.isActive }?.job
+            ?: createLoadingJob(gifPicture)
 
+        val loadingGifJob = LoadingGifJob(gifPicture.id, loadingJob)
+
+        loadingGifJobs.add(loadingGifJob)
         loadingJob.join()
+        loadingGifJobs.remove(loadingGifJob)
 
         getLocalUrl(gifPicture)?.let { url ->
             return Result.success(url)
@@ -56,7 +59,7 @@ class GifSourceImpl @Inject constructor(
         val job = CoroutineScope(Dispatchers.IO).launch {
             val body = try {
                 gifDownloadApi.downloadFile(gifPicture.url).body()
-            }  catch (e: IOException) {
+            } catch (e: IOException) {
                 cancel(e.message.toString())
                 return@launch
             } catch (e: RuntimeException) {

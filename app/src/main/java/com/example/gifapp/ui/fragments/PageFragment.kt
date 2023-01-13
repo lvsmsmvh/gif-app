@@ -1,29 +1,36 @@
 package com.example.gifapp.ui.fragments
 
 import android.os.Bundle
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gifapp.R
 import com.example.gifapp.databinding.FragmentPageBinding
+import com.example.gifapp.domain.entities.Page
 import com.example.gifapp.domain.exceptions.LoadException
 import com.example.gifapp.domain.exceptions.NothingFoundException
 import com.example.gifapp.ui.adapters.gif_picture.GifPictureSmallAdapter
 import com.example.gifapp.ui.viewmodels.*
 import com.example.gifapp.utils.logDebug
+import com.example.gifapp.utils.setCustomClickable
 import com.example.gifapp.utils.simpleNavigate
-import com.example.gifapp.utils.toast
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class PageFragment : Fragment() {
 
     private val viewModel: PageViewModel by activityViewModels()
+
+    private var _textWatcher: TextWatcher? = null
 
     private var _binding: FragmentPageBinding? = null
     private val binding get() = _binding!!
@@ -43,19 +50,53 @@ class PageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initTabLayout()
         initView()
         initData()
 
-        viewModel.loadFirstPage()
+        viewModel.loadFirstPageIfNothingLoaded()
+    }
+
+    private fun initTabLayout() {
+        val tabLayout = binding.tabLayout
+
+        val tabOnline = tabLayout.newTab()
+        tabLayout.addTab(tabOnline)
+        tabOnline.text = getString(R.string.online)
+
+        val tabSaved = tabLayout.newTab()
+        tabLayout.addTab(tabSaved)
+        tabSaved.text = getString(R.string.saved)
+
+        tabLayout.addOnTabSelectedListener(object : OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                logDebug("tablayout onTabSelected ${tab?.position}")
+                when (tab?.position == tabOnline.position) {
+                    true -> viewModel.goOnlineMode()
+                    false -> viewModel.goOfflineMode()
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+            }
+        })
     }
 
     private fun initView() {
-        binding.btnReload.setOnClickListener {
-            viewModel.loadFirstPage()
-        }
+        _textWatcher = binding.searchView.addTextChangedListener(
+            onTextChanged = { text, _, _, _ ->
+                val textAfter = text?.toString() ?: return@addTextChangedListener
+                viewModel.search(textAfter)
+            }
+        )
 
-        binding.btnOffline.setOnClickListener {
-            viewModel.goOfflineMode()
+        binding.btnPrev.setOnClickListener { viewModel.loadPreviousPage() }
+        binding.btnNext.setOnClickListener { viewModel.loadNextPage() }
+        binding.btnReload.setOnClickListener {
+            viewModel.updateFailedPage()
         }
 
         binding.recycleViewGifs.layoutManager = GridLayoutManager(
@@ -85,6 +126,7 @@ class PageFragment : Fragment() {
 
         viewModel.page.observe(viewLifecycleOwner) { state ->
             updateLayout(state)
+            configureButtons(state)
             when (state) {
                 is LoadingState.Loading -> {
                     logDebug("LoadingState.Loading")
@@ -107,6 +149,7 @@ class PageFragment : Fragment() {
                 }
                 is LoadingState.Loaded -> {
                     logDebug("LoadingState.Loaded: ${state.result.gifPictures.size}")
+//                    gifPictureAdapter.clear()
                     gifPictureAdapter.set(state.result.gifPictures)
                     binding.pagination.isVisible = true
                     viewModel.loadImages(state.result.gifPictures)
@@ -115,15 +158,33 @@ class PageFragment : Fragment() {
         }
     }
 
-    private fun updateLayout(loadingState: LoadingState<Any>) {
+    private fun updateLayout(loadingState: LoadingState<Page>) {
         binding.layoutLoading.isVisible = loadingState.isLoading()
         binding.layoutFailed.isVisible = loadingState.isFailed()
         binding.layoutLoaded.isVisible = loadingState.isLoaded()
     }
 
+    private fun configureButtons(loadingStatePage: LoadingState<Page>) {
+        loadingStatePage.asLoaded()?.result?.let { page ->
+            val pageNumber = page.pageNumber
+            val pagesAmount = page.pagesAmount
+            binding.tvPageIndicator.text = getString(R.string.divider_ph, pageNumber, pagesAmount)
+            val isFirstPage = pageNumber == 1
+            val isLastPage = pageNumber == pagesAmount
+            binding.btnPrev.setCustomClickable(!isFirstPage)
+            binding.btnNext.setCustomClickable(!isLastPage)
+            binding.pagination.isVisible = true
+        } ?: kotlin.run {
+            // not loaded
+            binding.btnPrev.setCustomClickable(false)
+            binding.btnNext.setCustomClickable(false)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _gifPictureAdapter = null
+        _binding?.searchView?.removeTextChangedListener(_textWatcher)
         _binding = null
     }
 }

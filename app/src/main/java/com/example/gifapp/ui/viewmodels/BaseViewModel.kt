@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gifapp.utils.logDebug
 import kotlinx.coroutines.*
 import kotlin.math.max
 
@@ -53,7 +54,7 @@ open class BaseViewModel : ViewModel() {
 
     protected fun <T : Any> makeLoadingRequest(
         liveData: LiveData<LoadingState<T>>,
-        allowInterrupt: Boolean = false,
+        allowInterrupt: Boolean = true,
         source: suspend (() -> Result<T>),
     ): Job {
         val job = createJob()

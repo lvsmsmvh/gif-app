@@ -5,10 +5,6 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.view.animation.AccelerateInterpolator
-import android.view.animation.Animation
-import android.view.animation.Transformation
-import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
@@ -17,8 +13,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.example.gifapp.BuildConfig
 import com.example.gifapp.R
-import kotlinx.coroutines.delay
-import kotlin.math.min
 
 fun isApiLevelAtLeast(api: Int): Boolean {
     return BuildConfig.VERSION_CODE >= api
@@ -46,6 +40,7 @@ fun Context.drawable(drawableRes: Int, tintColorRes: Int? = null): Drawable {
     }
     return drawable
 }
+
 fun Fragment.drawable(drawableRes: Int, tintColorRes: Int? = null): Drawable {
     return requireContext().drawable(drawableRes, tintColorRes)
 }
@@ -68,6 +63,11 @@ fun FragmentActivity.simpleNavigate(fragmentClass: Class<out Fragment>, bundle: 
             .addToBackStack(tag)
             .commit()
     }
+}
+
+fun View.setCustomClickable(clickable: Boolean) {
+    isClickable = clickable
+    alpha = if (clickable) 1.0f else 0.5f
 }
 
 fun View.color(color: Int) = context.color(color)

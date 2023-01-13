@@ -27,21 +27,25 @@ abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
         var localUrl: LoadingState<String>,
         var isSet: Boolean,
     )
+    private val gifPicturesData = mutableMapOf<GifPicture, GifPictureData>()
 
     override fun set(newItems: List<GifPicture>) {
         super.set(newItems)
+        gifPicturesData.clear()
         gifPicturesData.putAll(newItems.associateWith {
             GifPictureData(null, LoadingState.Loading, false)
         })
     }
 
-    private val gifPicturesData = mutableMapOf<GifPicture, GifPictureData>()
+    fun clear() {
+        gifPicturesData.clear()
+        super.set(emptyList())
+    }
 
     fun addUrl(gifPicture: GifPicture, loadingState: LoadingState<String>) {
         val gifPictureData = gifPicturesData[gifPicture]
         gifPictureData?.localUrl = loadingState
         tryToSetImage(gifPicture)
-        logDebug("Set URL ... start")
     }
 
     private fun tryToSetImage(gifPicture: GifPicture) {
@@ -81,7 +85,6 @@ abstract class BaseGifPictureAdapter<VH : BaseGifPictureViewHolder>(
     }
 
     override fun onBind(holder: VH, item: GifPicture) {
-        logDebug("Holder bind ${item.id}")
         val imageView = holder.bind(item, onClicked)
         val gifPictureData = gifPicturesData[item]
         gifPictureData?.imageView = imageView
